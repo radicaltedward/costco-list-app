@@ -2,7 +2,7 @@
 import { createRoot } from "react-dom/client";
 import "./styles.css";
 
-const STORAGE_KEY = "costco_list_v3";
+const STORAGE_KEY = "costco_list_v4";
 
 function createItem(name, category) {
   return {
@@ -39,6 +39,7 @@ function App() {
   const [items, setItems] = useState(load);
   const [newItem, setNewItem] = useState("");
   const [newTobacco, setNewTobacco] = useState("");
+  const [neededOnly, setNeededOnly] = useState(false);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
@@ -50,12 +51,16 @@ function App() {
 
     setItems((current) => {
       const existing = current.find(
-        (i) => normalizeName(i.name) === normalizeName(trimmed) && i.category === category
+        (i) =>
+          normalizeName(i.name) === normalizeName(trimmed) &&
+          i.category === category
       );
 
       if (existing) {
         return current.map((i) =>
-          i.id === existing.id ? { ...i, quantity: i.quantity + 1 } : i
+          i.id === existing.id
+            ? { ...i, quantity: i.quantity + 1, lastAddedAt: Date.now() }
+            : i
         );
       }
 
@@ -92,19 +97,33 @@ function App() {
     setItems((current) => current.filter((i) => i.id !== id));
   }
 
-  const groceries = useMemo(
-    () => sortItems(items.filter((i) => i.category === "grocery")),
-    [items]
-  );
+  function resetTrip() {
+    setItems((current) =>
+      current.map((item) => ({
+        ...item,
+        quantity: 0,
+      }))
+    );
+  }
 
-  const tobacco = useMemo(
-    () => sortItems(items.filter((i) => i.category === "tobacco")),
-    [items]
-  );
+  const groceries = useMemo(() => {
+    let list = items.filter((i) => i.category === "grocery");
+    if (neededOnly) list = list.filter((i) => i.quantity > 0);
+    return sortItems(list);
+  }, [items, neededOnly]);
+
+  const tobacco = useMemo(() => {
+    let list = items.filter((i) => i.category === "tobacco");
+    if (neededOnly) list = list.filter((i) => i.quantity > 0);
+    return sortItems(list);
+  }, [items, neededOnly]);
+
+  const neededCount = items.filter((i) => i.quantity > 0).length;
+  const totalQuantity = items.reduce((sum, i) => sum + i.quantity, 0);
 
   function renderAdder(value, setValue, category, placeholder) {
     return (
-      <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+      <div style={styles.addRow}>
         <input
           value={value}
           onChange={(e) => setValue(e.target.value)}
@@ -173,6 +192,27 @@ function App() {
     <div style={styles.page}>
       {renderAdder(newItem, setNewItem, "grocery", "Add grocery item")}
 
+      <div style={styles.topButtons}>
+        <button
+          style={{
+            ...styles.toggleButton,
+            background: neededOnly ? "#111827" : "#ffffff",
+            color: neededOnly ? "#ffffff" : "#111827",
+          }}
+          onClick={() => setNeededOnly(!neededOnly)}
+        >
+          {neededOnly ? "Showing Needed" : "Show Needed Only"}
+        </button>
+
+        <button style={styles.resetButton} onClick={resetTrip}>
+          Reset Trip
+        </button>
+      </div>
+
+      <div style={styles.stats}>
+        {neededCount} needed items • {totalQuantity} total quantity
+      </div>
+
       {renderList(groceries)}
 
       <div style={styles.sectionGap} />
@@ -195,6 +235,11 @@ const styles = {
     background: "#f3f4f6",
     boxSizing: "border-box",
   },
+  addRow: {
+    display: "flex",
+    gap: 8,
+    marginBottom: 10,
+  },
   input: {
     flex: 1,
     minWidth: 0,
@@ -214,6 +259,33 @@ const styles = {
     color: "white",
     fontSize: 16,
     fontWeight: "bold",
+  },
+  topButtons: {
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr",
+    gap: 8,
+    marginBottom: 8,
+  },
+  toggleButton: {
+    height: 42,
+    borderRadius: 12,
+    border: "1px solid #111827",
+    fontSize: 14,
+    fontWeight: "bold",
+  },
+  resetButton: {
+    height: 42,
+    borderRadius: 12,
+    border: "none",
+    background: "#dc2626",
+    color: "white",
+    fontSize: 14,
+    fontWeight: "bold",
+  },
+  stats: {
+    fontSize: 13,
+    color: "#6b7280",
+    marginBottom: 8,
   },
   item: {
     marginTop: 8,
