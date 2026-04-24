@@ -1,10 +1,12 @@
 ﻿import React, { useMemo, useState, useEffect } from "react";
+import { createRoot } from "react-dom/client";
+import "./styles.css";
 
 const STORAGE_KEY = "costco_list_v3";
 
-function createItem(name, category, id = Date.now()) {
+function createItem(name, category) {
   return {
-    id,
+    id: Date.now() + Math.random(),
     name: name.trim(),
     category,
     quantity: 1,
@@ -37,7 +39,7 @@ function save(items) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
 }
 
-export default function App() {
+function App() {
   const [items, setItems] = useState(load);
   const [newItem, setNewItem] = useState("");
   const [newTobacco, setNewTobacco] = useState("");
@@ -100,6 +102,7 @@ export default function App() {
     () => sortItems(items.filter((i) => i.category === "grocery")),
     [items]
   );
+
   const tobacco = useMemo(
     () => sortItems(items.filter((i) => i.category === "tobacco")),
     [items]
@@ -181,3 +184,5 @@ export default function App() {
     </div>
   );
 }
+
+createRoot(document.getElementById("root")).render(<App />);
