@@ -35,17 +35,13 @@ function load() {
   }
 }
 
-function save(items) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
-}
-
 function App() {
   const [items, setItems] = useState(load);
   const [newItem, setNewItem] = useState("");
   const [newTobacco, setNewTobacco] = useState("");
 
   useEffect(() => {
-    save(items);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
   }, [items]);
 
   function addItem(name, category) {
@@ -54,9 +50,7 @@ function App() {
 
     setItems((current) => {
       const existing = current.find(
-        (i) =>
-          normalizeName(i.name) === normalizeName(trimmed) &&
-          i.category === category
+        (i) => normalizeName(i.name) === normalizeName(trimmed) && i.category === category
       );
 
       if (existing) {
@@ -108,81 +102,186 @@ function App() {
     [items]
   );
 
+  function renderAdder(value, setValue, category, placeholder) {
+    return (
+      <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+        <input
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              addItem(value, category);
+              setValue("");
+            }
+          }}
+          placeholder={placeholder}
+          style={styles.input}
+        />
+        <button
+          style={styles.addButton}
+          onClick={() => {
+            addItem(value, category);
+            setValue("");
+          }}
+        >
+          Add
+        </button>
+      </div>
+    );
+  }
+
   function renderList(list) {
     return list.map((item) => (
       <div
         key={item.id}
         style={{
-          marginTop: 10,
-          padding: 8,
-          borderRadius: 6,
-          background: item.quantity > 0 ? "#d1fae5" : "transparent",
-          border: "1px solid #ddd",
+          ...styles.item,
+          background: item.quantity > 0 ? "#d1fae5" : "#ffffff",
         }}
       >
-        <strong>{item.name}</strong> (Bought {item.orderCount})
-        <div>
-          <button onClick={() => changeQuantity(item.id, -1)}>-</button>
-          {item.quantity}
-          <button onClick={() => changeQuantity(item.id, 1)}>+</button>
-          <button onClick={() => markBought(item.id)}>Bought</button>
-          <button onClick={() => deleteItem(item.id)}>Delete</button>
+        <div style={styles.itemTop}>
+          <div>
+            <strong style={styles.name}>{item.name}</strong>
+            <div style={styles.meta}>Bought {item.orderCount} times</div>
+          </div>
+
+          <button style={styles.deleteButton} onClick={() => deleteItem(item.id)}>
+            Delete
+          </button>
+        </div>
+
+        <div style={styles.controls}>
+          <button style={styles.qtyButton} onClick={() => changeQuantity(item.id, -1)}>
+            −
+          </button>
+
+          <div style={styles.qty}>{item.quantity}</div>
+
+          <button style={styles.qtyButton} onClick={() => changeQuantity(item.id, 1)}>
+            +
+          </button>
+
+          <button style={styles.boughtButton} onClick={() => markBought(item.id)}>
+            Bought
+          </button>
         </div>
       </div>
     ));
   }
 
   return (
-    <div style={{ padding: 20 }}>
-      {/* Grocery Section */}
-      <input
-        value={newItem}
-        onChange={(e) => setNewItem(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") {
-            addItem(newItem, "grocery");
-            setNewItem("");
-          }
-        }}
-        placeholder="Add grocery item"
-      />
-      <button
-        onClick={() => {
-          addItem(newItem, "grocery");
-          setNewItem("");
-        }}
-      >
-        Add
-      </button>
+    <div style={styles.page}>
+      {renderAdder(newItem, setNewItem, "grocery", "Add grocery item")}
 
       {renderList(groceries)}
 
-      {/* Tobacco Section */}
-      <div style={{ marginTop: 30 }} />
+      <div style={styles.sectionGap} />
 
-      <input
-        value={newTobacco}
-        onChange={(e) => setNewTobacco(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") {
-            addItem(newTobacco, "tobacco");
-            setNewTobacco("");
-          }
-        }}
-        placeholder="Add tobacco item"
-      />
-      <button
-        onClick={() => {
-          addItem(newTobacco, "tobacco");
-          setNewTobacco("");
-        }}
-      >
-        Add
-      </button>
+      {renderAdder(newTobacco, setNewTobacco, "tobacco", "Add tobacco item")}
 
       {renderList(tobacco)}
     </div>
   );
 }
+
+const styles = {
+  page: {
+    width: "100%",
+    maxWidth: 390,
+    minHeight: "100vh",
+    margin: "0 auto",
+    padding: "12px 10px 28px",
+    fontFamily: "-apple-system, BlinkMacSystemFont, Arial, sans-serif",
+    background: "#f3f4f6",
+    boxSizing: "border-box",
+  },
+  input: {
+    flex: 1,
+    minWidth: 0,
+    height: 46,
+    borderRadius: 12,
+    border: "1px solid #ccc",
+    padding: "0 12px",
+    fontSize: 16,
+    boxSizing: "border-box",
+  },
+  addButton: {
+    width: 62,
+    height: 46,
+    borderRadius: 12,
+    border: "none",
+    background: "#111827",
+    color: "white",
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  item: {
+    marginTop: 8,
+    padding: 10,
+    borderRadius: 14,
+    border: "1px solid #ddd",
+    boxSizing: "border-box",
+  },
+  itemTop: {
+    display: "flex",
+    justifyContent: "space-between",
+    gap: 8,
+    alignItems: "flex-start",
+  },
+  name: {
+    fontSize: 17,
+  },
+  meta: {
+    fontSize: 12,
+    color: "#6b7280",
+    marginTop: 2,
+  },
+  deleteButton: {
+    border: "none",
+    background: "#e5e7eb",
+    borderRadius: 10,
+    padding: "8px 10px",
+    fontSize: 13,
+  },
+  controls: {
+    display: "grid",
+    gridTemplateColumns: "48px 52px 48px 1fr",
+    gap: 8,
+    marginTop: 10,
+    alignItems: "center",
+  },
+  qtyButton: {
+    height: 44,
+    borderRadius: 12,
+    border: "none",
+    background: "#111827",
+    color: "white",
+    fontSize: 24,
+    fontWeight: "bold",
+  },
+  qty: {
+    height: 44,
+    borderRadius: 12,
+    background: "white",
+    border: "1px solid #ccc",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: 22,
+    fontWeight: "bold",
+  },
+  boughtButton: {
+    height: 44,
+    borderRadius: 12,
+    border: "none",
+    background: "#059669",
+    color: "white",
+    fontSize: 15,
+    fontWeight: "bold",
+  },
+  sectionGap: {
+    height: 26,
+  },
+};
 
 createRoot(document.getElementById("root")).render(<App />);
